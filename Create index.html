@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>跨时空邮局 - 致简爱</title>
+    <style>
+        /* 原有简爱风格样式 */
+        body {
+            background: url('https://img.zcool.cn/community/01e7b1554876430000019ae9d3f7e0.jpg') no-repeat center/cover fixed;
+            font-family: '宋体', serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title {
+            color: #5c3a21;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            margin: 20px 0;
+            border-bottom: 3px solid #8b7355;
+            padding-bottom: 10px;
+        }
+
+        .letter-box {
+            background: rgba(255, 255, 255, 0.9);
+            width: 600px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            margin: 20px;
+        }
+
+        #letter-input {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #8b7355;
+            border-radius: 5px;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: vertical;
+            background: #f5e6d3;
+        }
+
+        #submit-btn {
+            display: block;
+            margin: 15px auto;
+            padding: 10px 30px;
+            background: #8b7355;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        /* 历史信件列表样式 */
+        #letters-list {
+            width: 600px;
+            margin: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .letter-item {
+            background: #fff9f0;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #8b7355;
+            position: relative;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .letter-time {
+            color: #6b5841;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">✉️ 跨时空邮局 · 致简爱</h1>
+    
+    <div class="letter-box">
+        <textarea 
+            id="letter-input" 
+            placeholder="在此写下你对简爱的信件..."
+        ></textarea>
+        <button id="submit-btn">寄出这封信</button>
+    </div>
+
+    <!-- 历史信件列表 -->
+    <div id="letters-list">
+        <h2 style="color: #5c3a21; text-align: center">已寄出的信件</h2>
+        <div id="letters-container"></div>
+    </div>
+
+    <!-- 引入 Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // 替换为你的 Supabase 密钥
+        const SUPABASE_URL = 'https://jlcnmwvhglgjazgwbgnn.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsY25td3ZoZ2xnamF6Z3diZ25uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODMwOTYsImV4cCI6MjA2MTg1OTA5Nn0.dZij2yaD9aQ4UC52lYt6kT_U6b9jfyLIYVWa6QF4Qsk';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const input = document.getElementById('letter-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const lettersContainer = document.getElementById('letters-container');
+
+        // 提交信件
+        submitBtn.addEventListener('click', async () => {
+            if (!input.value.trim()) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '寄送中...';
+
+            // 保存到数据库
+            const { error } = await supabase
+                .from('letters')
+                .insert([{ 
+                    content: input.value,
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (!error) {
+                input.value = '';
+                submitBtn.textContent = '✓ 已寄出';
+                setTimeout(() => {
+                    submitBtn.textContent = '寄出这封信';
+                    submitBtn.disabled = false;
+                }, 2000);
+                loadLetters(); // 刷新列表
+            }
+        });
+
+        // 加载历史信件
+        async function loadLetters() {
+            const { data, error } = await supabase
+                .from('letters')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!error) {
+                lettersContainer.innerHTML = data.map(letter => `
+                    <div class="letter-item">
+                        <div class="letter-time">
+                            📅 ${new Date(letter.created_at).toLocaleString('zh-CN')}
+                        </div>
+                        <div class="letter-content">${letter.content.replace(/\n/g, '<br>')}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 页面加载时自动获取信件
+        loadLetters();
+    </script>
+</body>
+</html>
